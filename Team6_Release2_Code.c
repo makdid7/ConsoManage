@@ -37,8 +37,10 @@ Event *events;
 int eventCount = 0;
 int maxEvents = 1;
 
-User users[1000];
+
+User *users;
 int userCount = 0;
+int maxUsers = 1;
 
 int nextTicketID = 1;
 int nextEventID = 1;
@@ -497,7 +499,14 @@ void participantFlow() {
     user.ticketsCount = 0;
     // release 2 / for static array: users[userCount] = user;ers
     int currentUserIndex = userCount;
+
+
+    User *newUserPointer = users + userCount; //works cuz `users` refers to address of first element of `users`
+    *newUserPointer = user; //assign our new user to the memory at address [first user]+[total # of users]
     userCount++;
+
+    printf("User created successfully!\n");
+    printEvent(&user);
 
     // -----Participant Menu-----
 
