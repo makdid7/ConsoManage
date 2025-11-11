@@ -33,8 +33,9 @@ typedef struct {
     double price;
 } Event;
 
-Event events[1000];
+Event *events;
 int eventCount = 0;
+int maxEvents = 1;
 
 User users[1000];
 int userCount = 0;
@@ -165,16 +166,20 @@ int isValidEventPrice(double price) {
 
 // -----Business Logic-----
 
-double getCostWithDiscount(double originalCost, int age) {
-    if (age <= 12) { return originalCost * (1.0 - 0.4); }
-    if (age <= 18) { return originalCost * (1.0 - 0.2); }
-    if (age >= 65) { return originalCost * (1.0 - 0.45); }
+double getCostWithDiscount(double originalCost, User *user) {
+    if (user->age <= 12) { return originalCost * (1.0 - 0.4); }
+    if (user->age <= 18) { return originalCost * (1.0 - 0.2); }
+    if (user->age >= 65) { return originalCost * (1.0 - 0.45); }
 
     return originalCost;
 }
 
 
 void printEvent(Event *event) {
+    if (event->maxSeatNumber == 0) {
+        return;
+        // under normal circumstances, this cannot happen; we return because malloc gives memory to a non-existing event at the beginning of the program.
+    }
     printf("\n------------- Event Details -------------\n");
     printf("ID:       %04d\n", event->id);
     printf("Name:     %s\n", event->name);
@@ -291,7 +296,24 @@ void createNewEvent() {
     event.id = nextEventID;
     nextEventID++;
 
-    events[eventCount] = event;
+    if (eventCount >= maxEvents) {
+        // we're reaching the event limit; let's resize to allow for 1 more.
+        maxEvents++;
+        Event *temp = realloc(events, sizeof(Event) * maxEvents);
+        if (!temp) {
+            // realloc failed
+            printf("Sorry, we failed to reallocate memory to accommodate the new event!");
+            free(events);
+            exit(1);
+        }
+        // realloc didn't fail; assign new memory to events
+        events = temp;
+    }
+
+    // in release 2 we had: events[eventCount] = event;
+    // for release 3 we're using pointer arithmetic:
+    Event *newEventPointer = events + eventCount; //works cuz `events` refers to address of first element of `events`
+    *newEventPointer = event; //assign our new event to the memory at address [first event]+[total # of events]
     eventCount++;
 
     printf("Event created successfully!\n");
@@ -458,8 +480,22 @@ void participantFlow() {
         printf("Invalid email address.\n");
     }
 
+    if (userCount >= maxUsers) {
+        // we're reaching the event limit; let's resize to allow for 1 more.
+        maxUsers++;
+        User *temp = realloc(users, sizeof(User) * maxUsers);
+        if (!temp) {
+            // realloc failed
+            printf("Sorry, we failed to reallocate memory to accommodate the new user!");
+            free(users);
+            exit(1);
+        }
+        // realloc didn't fail; assign new memory to us
+        users = temp;
+    }
+
     user.ticketsCount = 0;
-    users[userCount] = user;
+    // release 2 / for static array: users[userCount] = user;ers
     int currentUserIndex = userCount;
     userCount++;
 
@@ -550,7 +586,7 @@ void participantFlow() {
             ticket.id = nextTicketID;
             nextTicketID++;
             sprintf(ticket.ticketReference, "TK-%04d%c%02d", event.id, row, seatNumber);
-            ticket.pricePaid = getCostWithDiscount(event.price, user.age);
+            ticket.pricePaid = getCostWithDiscount(event.price, &user);
 
             users[currentUserIndex].ticketsOwned[users[currentUserIndex].ticketsCount] = ticket;
             users[currentUserIndex].ticketsCount++;
@@ -574,22 +610,83 @@ int main() {
     char buffer[100];
     int userType;
 
+    events = malloc(sizeof(Event) * maxEvents);
+    if (!events) {
+        printf("Sorry, we didn't manage to allocate memory properly for `events`!");
+        exit(1);
+    }
+
+    //same logic for users
+    users = malloc(sizeof(User) * maxUsers);
+    if (!users) {
+        printf("Sorry, we didn't manage to allocate memory properly for `users`!");
+        exit(1);
+    }
+
     while (1) {
-        printf("Are you a Participant [1] or Organizer [2]? ");
+        printf("Are you a Participant [1] or Organizer [2]? (Enter -1 to quit program.)");
         fgets(buffer, sizeof(buffer), stdin);
         if (sscanf(buffer, "%d", &userType) != 1) {
             printf("Invalid input.\n");
             continue;
         }
-
         if (userType == 1) {
             participantFlow();
         } else if (userType == 2) {
-            createNewEvent();
+            while (1) {
+                printf("[1] Create a new event.\n");
+                printf("[2] View all existing events.\n");
+                printf("[3] Return to the main menu.\n");
+                printf("[X] Delete all events. This is irreversible.\n");
+                printf("[Y] Delete all users. This is irreversible.\n");
+                char organizerChoice;
+                fgets(buffer, sizeof(buffer), stdin);
+                if (sscanf(buffer, "%c", &organizerChoice) != 1) {
+                    printf("Invalid input.\n\n");
+                } else {
+                    if (organizerChoice == 'X') {
+                        free(events);
+                        eventCount = 0;
+                        maxEvents = 1;
+                        events = malloc(sizeof(Event) * maxEvents);
+                        if (!events) {
+                            printf("Sorry, we failed to allocate memory for `events`!");
+                            exit(1);
+                        }
+                        break;
+                    }
+                    if (organizerChoice == 'Y') {
+                        free(users);
+                        userCount = 0;
+                        maxUsers = 1;
+                        users = malloc(sizeof(User) * maxUsers);
+                        if (!users) {
+                            printf("Sorry, we failed to allocate memory for `users`!");
+                            exit(1);
+                        }
+                        break;
+                    }
+                    if (organizerChoice == '1') {
+                        createNewEvent();
+                    } else if (organizerChoice == '2') {
+
+                        for (int i = 0; i < eventCount; i++) {
+                            printEvent(&events[i]);
+                        }
+                    } else if (organizerChoice == '3') {
+                        break;
+                    }
+                }
+            }
+        } else if (userType == -1) {
+            break;
         } else {
             printf("Please choose 1 or 2.\n");
         }
     }
+
+    free(events);
+    free(users);
 
     return 0;
 }
