@@ -23,7 +23,7 @@ typedef struct {
     int ticketsCount;
 } User;
 
-typedef struct {
+typedef struct Event {
     int id;
     char name[52];
     char date[12];
@@ -421,10 +421,9 @@ int isValidEmail(char *email) {
     if (!at) return 0;
     // simple check: at least one char before and after '@'
     if (at == email) return 0;
-    if (*(at+1) == '\0') return 0;
+    if (*(at + 1) == '\0') return 0;
     return 1;
 }
-
 
 
 // -----Utility-----
@@ -514,8 +513,9 @@ void participantFlow() {
         if (!temp) {
             // realloc failed
             printf("Sorry, we failed to reallocate memory to accommodate the new user!");
-            free(users);
             free(events);
+            events = NULL;
+            // todo repeat above for users list
             exit(1);
         }
         // realloc didn't fail; assign new memory to us
@@ -667,6 +667,45 @@ void resetEventsList() {
 }
 
 
+// Release 3 Main Req number 2: three "Array-Handling Functions"
+struct Event *createEventsList(int size) {
+
+    Event *tmp = malloc(sizeof(Event) * size);
+    if (tmp == NULL) {
+        printf("#createEventsList Failed to allocate memory for events list :(\nExiting ConsoManage...");
+        exit(1);
+    }
+
+    return tmp;
+}
+
+void initEventsList(struct Event *a, const int size) {
+    // gives default values to all allocated (but not yet used) events
+    for (int i = 0; i < size; i++) {
+        // accessing data in the "(*(arr + i)).reserve" way
+        struct Event *e = a + i;   // pointer to the i-th Event (pointer arithmetic! :D)
+
+        e->id = 0;
+        e->name[0] = '\0';
+        e->date[0] = '\0';
+        e->time[0] = '\0';
+        e->location[0] = '\0';
+        e->maxSeatRow = 'A';
+        e->maxSeatNumber = 0;
+        e->price = 0.0;
+    }
+}
+
+
+void displayEventsList(const Event *a, const int size) {
+    // accessing data in the "arr[i].reserve" way
+    for (int i = 0; i < size; ++i) {
+        Event event = a[i];
+        printEvent(&event);
+    }
+}
+
+
 void initEventList() {
     // initialize events dynamic array
 
@@ -761,7 +800,10 @@ int main() {
 
     resetEventsList();
     free(events);
-    free(users);
+    events = NULL;
+
+
+    // todo repeat the above for users list
 
     return 0;
 }
