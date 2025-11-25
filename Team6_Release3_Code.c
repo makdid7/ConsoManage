@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <regex.h>
 
 // hello
 typedef struct {
@@ -15,7 +14,7 @@ typedef struct {
     int eventID;
 } Ticket;
 
-typedef struct {
+typedef struct User {
     char fullName[75];
     int age;
     char email[51];
@@ -34,20 +33,20 @@ typedef struct Event {
     double price;
 } Event;
 
-typedef struct {
+typedef struct EventList {
     Event *data;
     int count;
     int capacity;
 } EventList;
 
-// pre-release 3: `Event *events;`
-EventList *events;
+typedef struct UserList {
+    User *data;
+    int count;
+    int capacity;
+} UserList;
+
 const int eventListInitialCapacity = 1;
-
-
-User *users;
-int userCount = 0;
-int maxUsers = 1;
+const int userListInitialCapacity = 1;
 
 int nextTicketID = 1;
 int nextEventID = 1;
@@ -60,8 +59,7 @@ int isValidEventName(char name[51]) {
         return 0;
     }
 
-    int i;
-    for (i = 0; i < len; i++) {
+    for (int i = 0; i < len; i++) {
         char c = name[i];
         if (!((c >= 'A' && c <= 'Z') ||
               (c >= 'a' && c <= 'z') ||
@@ -80,8 +78,7 @@ int isValidEventLocation(char loc[51]) {
         return 0;
     }
 
-    int i;
-    for (i = 0; i < len; i++) {
+    for (int i = 0; i < len; i++) {
         char c = loc[i];
         if (!((c >= 'A' && c <= 'Z') ||
               (c >= 'a' && c <= 'z') ||
@@ -102,8 +99,7 @@ int isValidEventDate(char date[11]) {
         return 0;
     }
 
-    int i;
-    for (i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++) {
         if (i == 2 || i == 5) {
             continue;
         }
@@ -175,7 +171,7 @@ int isValidEventPrice(double price) {
 
 // -----Business Logic-----
 
-double getCostWithDiscount(double originalCost, User *user) {
+double getCostWithDiscount(const double originalCost, const User *user) {
     if (user->age <= 12) { return originalCost * (1.0 - 0.4); }
     if (user->age <= 18) { return originalCost * (1.0 - 0.2); }
     if (user->age >= 65) { return originalCost * (1.0 - 0.45); }
@@ -201,10 +197,18 @@ void printEvent(Event *event) {
     } else {
         printf("Price:    %.2lf\n", event->price);
     }
+    printf("-----------------------------------------\n\n");
+}
+
+void printUser(User *user) {
+    printf("\n------------- User Details -------------\n");
+    printf("Full name: %s\n", user->fullName);
+    printf("Age:       %d\n", user->age);
+    printf("E-mail:    %s\n", user->email);
     printf("----------------------------------------\n\n");
 }
 
-int isValidRow(Event *event, char row) {
+int isValidRow(const Event *event, const char row) {
     if (row >= 'A' && row <= event->maxSeatRow) {
         return 1;
     }
@@ -213,7 +217,7 @@ int isValidRow(Event *event, char row) {
 
 // -----Event Creation -----
 
-void createNewEvent() {
+void createNewEvent(EventList *events) {
     Event newEvent;
     char buffer[100];
 
@@ -353,7 +357,7 @@ void createNewEvent() {
 
 // -----Participant Flow -----
 
-int isValidEventID(int id) {
+int isValidEventID(const int id, const EventList *events) {
     if (id == -1) {
         return 1;
     }
@@ -370,10 +374,10 @@ int isValidEventID(int id) {
     return 0;
 }
 
-int isSeatTaken(Event *event, char row, int seatNumber) {
-    for (int i = 0; i < userCount; i++) {
-        for (int j = 0; j < users[i].ticketsCount; j++) {
-            Ticket ticket = users[i].ticketsOwned[j];
+int isSeatTaken(const UserList* users, const Event *event, const char row, const int seatNumber) {
+    for (int i = 0; i < users->count; i++) {
+        for (int j = 0; j < users->data[i].ticketsCount; j++) {
+            const Ticket ticket = users->data[i].ticketsOwned[j];
             if (ticket.eventID == event->id && ticket.row == row && ticket.seatNumber == seatNumber) {
                 return 1;
             }
@@ -382,7 +386,7 @@ int isSeatTaken(Event *event, char row, int seatNumber) {
     return 0;
 }
 
-void listUserTickets(User *user) {
+void listUserTickets(User *user, const EventList *events) {
     printf("\n---------- Tickets Owned by %s ----------\n", user->fullName);
     if (user->ticketsCount == 0) {
         printf("No tickets purchased yet.\n");
@@ -391,8 +395,7 @@ void listUserTickets(User *user) {
             Ticket ticket = user->ticketsOwned[i];
             Event event;
             int found = 0;
-            int k;
-            for (k = 0; k < events->count; k++) {
+            for (int k = 0; k < events->count; k++) {
                 if (events->data[k].id == ticket.eventID) {
                     event = events->data[k];
                     found = 1;
@@ -410,11 +413,11 @@ void listUserTickets(User *user) {
             printf("Price Paid: %.2lf\n\n", ticket.pricePaid);
         }
     }
-    printf("-----------------------------------------\n");
+    printf("------------------------------------------\n");
 }
 
 
-int isValidEmail(char *email) {
+int isValidEmail(const char *email) {
     size_t len = strlen(email);
     if (len == 0 || len > 50) return 0;
     const char *at = strchr(email, '@');
@@ -429,13 +432,13 @@ int isValidEmail(char *email) {
 // -----Utility-----
 
 
-void printSeatMap(Event *event) {
+void printSeatMap(const UserList* users, const Event *event) {
     printf("------------- Seat Map -------------\n");
 
-    for (int row = 'A'; row <= event->maxSeatRow; row++) {
+    for (char row = 'A'; row <= event->maxSeatRow; row++) {
         printf("%c: ", row);
         for (int seat = 1; seat <= event->maxSeatNumber; seat++) {
-            if (isSeatTaken(event, row, seat)) {
+            if (isSeatTaken(users, event, row, seat)) {
                 printf("-- ");
             } else {
                 printf("%02d ", seat);
@@ -447,7 +450,7 @@ void printSeatMap(Event *event) {
     printf("-----------------------------------\n\n");
 }
 
-void participantFlow() {
+void participantFlow(const EventList *events, UserList *users) {
     char buffer[100];
     User user;
 
@@ -506,33 +509,31 @@ void participantFlow() {
         printf("Invalid email address.\n");
     }
 
-    if (userCount >= maxUsers) {
-        // we're reaching the event limit; let's resize to allow for 1 more.
-        maxUsers++;
-        User *temp = realloc(users, sizeof(User) * maxUsers);
-        if (!temp) {
+    if (users->count >= users->capacity) {
+        // we're reaching the user limit; let's resize to allow for more.
+        users->capacity *= 2;
+        User *tmp = realloc(users->data, sizeof(User) * users->capacity);
+        if (tmp == NULL) {
             // realloc failed
             printf("Sorry, we failed to reallocate memory to accommodate the new user!");
-            free(events);
-            events = NULL;
-            // todo repeat above for users list
             exit(1);
         }
         // realloc didn't fail; assign new memory to us
-        users = temp;
+        users->data = tmp;
     }
 
     user.ticketsCount = 0;
     // release 2 / for static array: users[userCount] = user;ers
-    int currentUserIndex = userCount;
+    int currentUserIndex = users->count;
 
 
-    User *newUserPointer = users + userCount; //works cuz `users` refers to address of first element of `users`
+    User *newUserPointer = users->data + users->count;
+    //works cuz `users->data` refers to address of first element of `users`
     *newUserPointer = user; //assign our new user to the memory at address [first user]+[total # of users]
-    userCount++;
+    users->count++;
 
     printf("User created successfully!\n");
-    //todo printUser(&user);
+    printUser(&user);
 
     // -----Participant Menu-----
 
@@ -552,22 +553,21 @@ void participantFlow() {
         }
 
         switch (choice) {
-            case (1): {
+            case 1: {
                 if (events->count == 0) {
                     printf("Nothing is happening at the moment.\n");
                 }
-                int i;
-                for (i = 0; i < events->count; i++) {
+                for (int i = 0; i < events->count; i++) {
                     printEvent(&(events->data[i]));
                 }
                 break;
             }
-            case(2): {
+            case 2: {
                 int eventID;
                 while (1) {
                     printf("Enter Event ID: ");
                     fgets(buffer, sizeof(buffer), stdin);
-                    if (sscanf(buffer, "%d", &eventID) == 1 && isValidEventID(eventID)) {
+                    if (sscanf(buffer, "%d", &eventID) == 1 && isValidEventID(eventID, events)) {
                         break;
                     }
                     printf("Invalid Event ID. Try again.\n");
@@ -575,8 +575,7 @@ void participantFlow() {
 
                 Event event;
                 int found = 0;
-                int i;
-                for (i = 0; i < events->count; i++) {
+                for (int i = 0; i < events->count; i++) {
                     if (events->data[i].id == eventID) {
                         event = events->data[i];
                         found = 1;
@@ -589,7 +588,7 @@ void participantFlow() {
                     continue;
                 }
 
-                printSeatMap(&event);
+                printSeatMap(users, &event);
 
                 char row;
                 int seatNumber;
@@ -607,7 +606,7 @@ void participantFlow() {
                     fgets(buffer, sizeof(buffer), stdin);
                     if (sscanf(buffer, "%d", &seatNumber) == 1 && seatNumber >= 1 && seatNumber <= event.
                         maxSeatNumber) {
-                        if (isSeatTaken(&event, row, seatNumber)) {
+                        if (isSeatTaken(users, &event, row, seatNumber)) {
                             printf("Seat already taken. Please choose another.\n");
                         } else {
                             break;
@@ -627,15 +626,15 @@ void participantFlow() {
                 sprintf(ticket.ticketReference, "TK-%04d%c%02d", event.id, row, seatNumber);
                 ticket.pricePaid = getCostWithDiscount(event.price, &user);
 
-                users[currentUserIndex].ticketsOwned[users[currentUserIndex].ticketsCount] = ticket;
-                users[currentUserIndex].ticketsCount++;
+                users->data[currentUserIndex].ticketsOwned[users->data[currentUserIndex].ticketsCount] = ticket;
+                users->data[currentUserIndex].ticketsCount++;
 
                 printf("Ticket booked successfully! Reference: %s, Price: %.2lf\n", ticket.ticketReference,
                        ticket.pricePaid);
                 break;
             }
             case (3): {
-                listUserTickets(&users[currentUserIndex]);
+                listUserTickets(&users->data[currentUserIndex], events);
                 break;
             }
             case (4): {
@@ -649,41 +648,66 @@ void participantFlow() {
     }
 }
 
-
-void resetEventsList() {
-    // reset the heap / inner contents of the dynamic events list
-
-    free(events->data);
-    events->data = NULL;
-    events->count = 0;
-    events->capacity = eventListInitialCapacity;
-    Event *temp = malloc(sizeof(Event) * events->capacity);
-    if (temp != NULL) {
-        events->data = temp;
-    } else {
-        printf("Sorry, we failed to allocate memory for `events->data`! Closing ConsoManage...");
-        exit(1);
-    }
-}
+// void resetEventList(EventList *events) {
+//     // reset the heap / inner contents of the dynamic events list
+//
+//     free(events->data);
+//     events->data = NULL;
+//
+//     events->count = 0;
+//     events->capacity = eventListInitialCapacity;
+//
+//     Event *temp = malloc(sizeof(Event) * events->capacity);
+//     if (temp != NULL) {
+//         events->data = temp;
+//     } else {
+//         printf("Sorry, we failed to allocate memory for `events->data`! Closing ConsoManage...");
+//         exit(1);
+//     }
+// }
+//
+//
+// void resetUserList(UserList *users) {
+//     // reset the heap / inner contents of the dynamic events list
+//
+//     free(users->data);
+//     users->data = NULL;
+//
+//     users->count = 0;
+//     users->capacity = userListInitialCapacity;
+//
+//     User *tmp = malloc(sizeof(User) * users->capacity);
+//     if (tmp != NULL) {
+//         users->data = tmp;
+//     } else {
+//         printf("Sorry, we failed to allocate memory for `users->data`! Closing ConsoManage...");
+//         exit(1);
+//     }
+// }
 
 
 // Release 3 Main Req number 2: three "Array-Handling Functions"
-struct Event *createEventsList(int size) {
 
+struct Event *createEventData(const int size) {
     Event *tmp = malloc(sizeof(Event) * size);
     if (tmp == NULL) {
-        printf("#createEventsList Failed to allocate memory for events list :(\nExiting ConsoManage...");
+        printf("#createEventList Failed to allocate memory for events->data :(\nExiting ConsoManage...");
         exit(1);
     }
 
     return tmp;
 }
 
-void initEventsList(struct Event *a, const int size) {
+
+void initEventData(EventList *events) {
     // gives default values to all allocated (but not yet used) events
-    for (int i = 0; i < size; i++) {
+
+    events->count = 0;
+    events->capacity = eventListInitialCapacity;
+
+    for (int i = 0; i < eventListInitialCapacity; i++) {
         // accessing data in the "(*(arr + i)).reserve" way
-        struct Event *e = a + i;   // pointer to the i-th Event (pointer arithmetic! :D)
+        struct Event *e = events->data + i; // pointer to the i-th Event (pointer arithmetic! :D)
 
         e->id = 0;
         e->name[0] = '\0';
@@ -696,7 +720,6 @@ void initEventsList(struct Event *a, const int size) {
     }
 }
 
-
 void displayEventsList(const Event *a, const int size) {
     // accessing data in the "arr[i].reserve" way
     for (int i = 0; i < size; ++i) {
@@ -706,23 +729,71 @@ void displayEventsList(const Event *a, const int size) {
 }
 
 
-void initEventList() {
-    // initialize events dynamic array
-
-    events = malloc(sizeof(EventList));
-    if (!events) {
-        printf("Failed to allocate EventList struct!\n");
+struct EventList *createEventContainer() {
+    struct EventList *tmp = malloc(sizeof(EventList));
+    if (tmp == NULL) {
+        printf("#createEventList Failed to allocate memory for events ER-Light container :(\nExiting ConsoManage...");
         exit(1);
     }
 
-    Event *temp = malloc(eventListInitialCapacity * sizeof(Event));
-    if (temp == NULL) {
-        printf("Sorry, we didn't manage to allocate memory properly for `events.data`!");
+    return tmp;
+}
+
+// Similar procedure for the users list:
+
+void initUserList(UserList* users) {
+    // gives default values to all allocated (but not yet used) users
+
+    users->count = 0;
+    users->capacity = userListInitialCapacity;
+
+    for (int i = 0; i < userListInitialCapacity; i++) {
+        struct User *u = users->data + i; // pointer to the i-th User
+
+        u->fullName[0] = '\0';
+        u->age = 0;
+        u->email[0] = '\0';
+        u->ticketsCount = 0;
+
+        // zero out ticketsOwned array as well just in case (maybe we should make it dynamic too (later tho))
+        for (int j = 0; j < 1000; j++) {
+            u->ticketsOwned[j].ownerFullName[0] = '\0';
+            u->ticketsOwned[j].row = '\0';
+            u->ticketsOwned[j].seatNumber = 0;
+            u->ticketsOwned[j].id = 0;
+            u->ticketsOwned[j].ticketReference[0] = '\0';
+            u->ticketsOwned[j].pricePaid = 0.0;
+            u->ticketsOwned[j].eventID = 0;
+        }
+    }
+}
+
+struct User *createUserData(const int size) {
+    struct User *tmp = malloc(sizeof(User) * size);
+    if (tmp == NULL) {
+        printf("#createEventList Failed to allocate memory for users->data :(\nExiting ConsoManage...");
         exit(1);
     }
-    events->data = temp;
-    events->count = 0;
-    events->capacity = eventListInitialCapacity;
+
+    return tmp;
+}
+
+struct UserList *createUserContainer() {
+    struct UserList *tmp = malloc(sizeof(UserList));
+    if (tmp == NULL) {
+        printf("#createUserList Failed to allocate memory for users ER-Light container :(\nExiting ConsoManage...");
+        exit(1);
+    }
+
+    return tmp;
+}
+
+void displayUsersList(const User *a, const int size) {
+    // accessing data in the "arr[i].field" way
+    for (int i = 0; i < size; ++i) {
+        User user = a[i];
+        printUser(&user);
+    }
 }
 
 
@@ -733,15 +804,12 @@ int main() {
     int userType;
 
     // events = malloc(sizeof(Event) * maxEvents);
-    initEventList();
-    // todo initUserList(); and other functionality to make the user list dynamic
-
-    //same logic for users
-    users = malloc(sizeof(User) * maxUsers);
-    if (!users) {
-        printf("Sorry, we didn't manage to allocate memory properly for `users`!");
-        exit(1);
-    }
+    EventList *events = createEventContainer();
+    events->data = createEventData(eventListInitialCapacity);
+    initEventData(events);
+    UserList *users = createUserContainer();
+    users->data = createUserData(userListInitialCapacity);
+    initUserList(users);
 
     while (1) {
         printf("Are you a Participant [1] or Organizer [2]? (Enter -1 to quit program.)");
@@ -751,7 +819,7 @@ int main() {
             continue;
         }
         if (userType == 1) {
-            participantFlow();
+            participantFlow(events, users);
         } else if (userType == 2) {
             while (1) {
                 printf("[1] Create a new event.\n");
@@ -765,23 +833,32 @@ int main() {
                     printf("Invalid input.\n\n");
                 } else {
                     if (organizerChoice == 'X') {
-                        resetEventsList();
-                        break;
-                    }
-                    if (organizerChoice == 'Y') {
-                        // todo replace with resetEventsList();
-                        free(users);
-                        userCount = 0;
-                        maxUsers = 1;
-                        users = malloc(sizeof(User) * maxUsers);
-                        if (!users) {
-                            printf("Sorry, we failed to allocate memory for `users`!");
-                            exit(1);
+                        free(events->data);
+                        events->data = NULL;
+                        events->count = 0;
+                        events->capacity = eventListInitialCapacity;
+                        Event *tmp = malloc(events->capacity * sizeof(Event));
+                        if (tmp != NULL) {
+                            events->data = tmp;
+                        } else {
+                            printf("Failed to malloc! Quitting ConsoManage...");
                         }
                         break;
                     }
+                    if (organizerChoice == 'Y') {
+                        free(users->data);
+                        users->data = NULL;
+                        users->count = 0;
+                        users->capacity = userListInitialCapacity;
+                        User *tmp = malloc(users->capacity * sizeof(User));
+                        if (tmp != NULL) {
+                            users->data = tmp;
+                        } else {
+                            printf("Failed to malloc! Quitting ConsoManage...");
+                        }
+                    }
                     if (organizerChoice == '1') {
-                        createNewEvent();
+                        createNewEvent(events);
                     } else if (organizerChoice == '2') {
                         for (int i = 0; i < events->count; i++) {
                             printEvent(&events->data[i]);
@@ -798,12 +875,17 @@ int main() {
         }
     }
 
-    resetEventsList();
+    free(events->data);
+    events->data = NULL;
+    // container only freed once at the end of program; freeing during use looks like memory leakage.
     free(events);
     events = NULL;
 
-
-    // todo repeat the above for users list
+    free(users->data);
+    users->data = NULL;
+    // container only freed once at the end of program; freeing during use looks like memory leakage.
+    free(users);
+    users = NULL;
 
     return 0;
 }
