@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "io.h"
 #include "models.h"
 #include "logic.h"
 
@@ -16,60 +18,6 @@ int nextEventID = 1;
 void initEventData(EventList *events);
 
 void initUserList(UserList *users);
-
-// -----Business Logic-----
-
-double getCostWithDiscount(const double originalCost, const User *user) {
-    if (user->age <= 12) {
-        return originalCost * (1.0 - 0.4);
-    }
-    if (user->age <= 18) {
-        return originalCost * (1.0 - 0.2);
-    }
-    if (user->age >= 65) {
-        return originalCost * (1.0 - 0.45);
-    }
-
-    return originalCost;
-}
-
-void printEvent(Event *event) {
-    // if (event->maxSeatNumber == 0) {
-    //     return;
-    //     // under normal circumstances, this cannot happen; we return because
-    //     malloc gives memory to a non-existing event at the beginning of the
-    //     program.
-    // }
-    printf("\n------------- Event Details -------------\n");
-    printf("ID:       %04d\n", event->id);
-    printf("Name:     %s\n", event->name);
-    printf("Date:     %s\n", event->date);
-    printf("Time:     %s\n", event->time);
-    printf("Location: %s\n", event->location);
-    printf("Seats:    %c01-%c%02d\n", 'A', event->maxSeatRow,
-           event->maxSeatNumber);
-    if (event->price == 0) {
-        printf("Price:    Free\n");
-    } else {
-        printf("Price:    %.2lf\n", event->price);
-    }
-    printf("-----------------------------------------\n\n");
-}
-
-void printUser(User *user) {
-    printf("\n------------- User Details -------------\n");
-    printf("Full name: %s\n", user->fullName);
-    printf("Age:       %d\n", user->age);
-    printf("E-mail:    %s\n", user->email);
-    printf("----------------------------------------\n\n");
-}
-
-int isValidRow(const Event *event, const char row) {
-    if (row >= 'A' && row <= event->maxSeatRow) {
-        return 1;
-    }
-    return 0;
-}
 
 // -----Event Creation -----
 
@@ -211,104 +159,6 @@ void createNewEvent(EventList *events) {
     printEvent(&newEvent);
 }
 
-// -----Participant Flow -----
-
-int isValidEventID(const int id, const EventList *events) {
-    if (id == -1) {
-        return 1;
-    }
-
-    if (id < -1) {
-        return 0;
-    }
-
-    for (int i = 0; i < events->count; i++) {
-        if (events->data[i].id == id) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
-int isSeatTaken(const UserList *users, const Event *event, const char row,
-                const int seatNumber) {
-    for (int i = 0; i < users->count; i++) {
-        for (int j = 0; j < users->data[i].ticketsCount; j++) {
-            const Ticket ticket = users->data[i].ticketsOwned[j];
-            if (ticket.eventID == event->id && ticket.row == row &&
-                ticket.seatNumber == seatNumber) {
-                return 1;
-            }
-        }
-    }
-    return 0;
-}
-
-void listUserTickets(User *user, const EventList *events) {
-    printf("\n---------- Tickets Owned by %s ----------\n", user->fullName);
-    if (user->ticketsCount == 0) {
-        printf("No tickets purchased yet.\n");
-    } else {
-        for (int i = 0; i < user->ticketsCount; i++) {
-            Ticket ticket = user->ticketsOwned[i];
-            Event event;
-            int found = 0;
-            for (int k = 0; k < events->count; k++) {
-                if (events->data[k].id == ticket.eventID) {
-                    event = events->data[k];
-                    found = 1;
-                    break;
-                }
-            }
-
-            printf("Ticket Reference: %s\n", ticket.ticketReference);
-            if (found) {
-                printf("Event: %s\n", event.name);
-            } else {
-                printf("Event: Unknown\n");
-            }
-            printf("Seat: %c%02d\n", ticket.row, ticket.seatNumber);
-            printf("Price Paid: %.2lf\n\n", ticket.pricePaid);
-        }
-    }
-    printf("------------------------------------------\n");
-}
-
-int isValidEmail(const char *email) {
-    size_t len = strlen(email);
-    if (len == 0 || len > 50)
-        return 0;
-    const char *at = strchr(email, '@');
-    if (!at)
-        return 0;
-    // simple check: at least one char before and after '@'
-    if (at == email)
-        return 0;
-    if (*(at + 1) == '\0')
-        return 0;
-    return 1;
-}
-
-// -----Utility-----
-
-void printSeatMap(const UserList *users, const Event *event) {
-    printf("------------- Seat Map -------------\n");
-
-    for (char row = 'A'; row <= event->maxSeatRow; row++) {
-        printf("%c: ", row);
-        for (int seat = 1; seat <= event->maxSeatNumber; seat++) {
-            if (isSeatTaken(users, event, row, seat)) {
-                printf("-- ");
-            } else {
-                printf("%02d ", seat);
-            }
-        }
-        printf("\n");
-    }
-
-    printf("-----------------------------------\n\n");
-}
-
 void participantFlow(const EventList *events, UserList *users) {
     char buffer[100];
     User user;
@@ -448,6 +298,7 @@ void participantFlow(const EventList *events, UserList *users) {
                     continue;
                 }
 
+                char* seatmap[event.maxSeatRow][event.maxSeatNumber] = generateSeatmap(&users, &event);
                 printSeatMap(users, &event);
 
                 char row;
