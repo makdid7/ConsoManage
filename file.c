@@ -2,7 +2,7 @@
 // Created by mkd on 11/28/25.
 //
 
-#include "fileio.h"
+#include "file.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -18,7 +18,7 @@ int loadAll(Event repo[]) {
 
     while (fgets(line, sizeof(line), f) != NULL) {
         Event e;
-        int parsed = sscanf(
+        const int parsed = sscanf(
             line,
             "%d;%51[^;];%11[^;];%6[^;];%51[^;];%c;%d;%lf",
             &e.id,
@@ -40,7 +40,7 @@ int loadAll(Event repo[]) {
     return count;
 }
 
-int saveAll(Event repo[], int count) {
+int saveAll(Event repo[], const int count) {
     FILE* f = fopen("data.txt", "w");
     if (f == NULL) return 1;
 
