@@ -5,6 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "io.h"
+
+
 double getCostWithDiscount(const double originalCost, const User *user) {
     if (user->age <= 12) {
         return originalCost * (1.0 - 0.4);
@@ -77,4 +80,52 @@ char* generateSeatmap(const UserList* users, const Event* event) {
     }
 
     return seatmap;
+}
+
+
+int getMaxEventID(const EventList *events) {
+    if (events->count == 0) {
+        return 0; // If no events, max ID is 0
+    }
+
+    int maxID = 0;
+    for (int i = 0; i < events->count; i++) {
+        if (events->data[i].id > maxID) {
+            maxID = events->data[i].id;
+        }
+    }
+    return maxID;
+}
+
+
+int nearestPowerOfTwo(const int x) {
+    // get nearest integer closest to a power of two (nearest cannot be lower than reference value)
+    int p = 1;
+
+    while (p <= x) {
+        p *= 2;
+    }
+
+    return p;
+}
+
+void initEventData(EventList *events, const int initialEventCount) {
+    // gives default values to all allocated (but not yet used) events
+
+    events->count = initialEventCount;
+    events->capacity = nearestPowerOfTwo(events->count);
+
+    for (int i = 0; i < events->count; i++) {
+        // accessing data in the "(*(arr + i)).reserve" way
+        Event *e = events->data + i; // pointer to the i-th Event (pointer arithmetic! :D)
+
+        e->id = 0;
+        e->name[0] = '\0';
+        e->date[0] = '\0';
+        e->time[0] = '\0';
+        e->location[0] = '\0';
+        e->maxSeatRow = 'A';
+        e->maxSeatNumber = 0;
+        e->price = 0.0;
+    }
 }

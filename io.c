@@ -5,7 +5,15 @@
 #include "io.h"
 
 #include <stdio.h>
+#include <string.h>
 
+#include "file.h"
+
+int nextEventID;
+
+void setNextEventID(int newID) {
+    nextEventID = newID;
+}
 
 void printUser(User *user) {
     printf("\n------------- User Details -------------\n");
@@ -16,12 +24,7 @@ void printUser(User *user) {
 }
 
 void printEvent(Event *event) {
-    // if (event->maxSeatNumber == 0) {
-    //     return;
-    //     // under normal circumstances, this cannot happen; we return because
-    //     malloc gives memory to a non-existing event at the beginning of the
-    //     program.
-    // }
+
     printf("\n------------- Event Details -------------\n");
     printf("ID:       %04d\n", event->id);
     printf("Name:     %s\n", event->name);
@@ -90,4 +93,114 @@ void printSeatmap(char* seatmap, char maxSeatRow, int maxSeatNumber) {
     }
 
     printf("----------------------------------\n\n");
+}
+
+
+
+// -----Event Creation -----
+
+void createNewEvent(EventList *events) {
+    Event newEvent;
+    char buffer[100];
+
+    while (1) {
+        printf("Enter event name: ");
+        fgets(buffer, sizeof(buffer), stdin);
+        buffer[strcspn(buffer, "\n")] = '\0';
+
+        if (isValidEventName(buffer)) {
+            strcpy(newEvent.name, buffer);
+            break;
+        }
+
+        printf("Please only use Latin characters, numbers, dashes, commas, and spaces.\n");
+    }
+
+    while (1) {
+        printf("Enter event date (DD.MM.YYYY): ");
+        fgets(buffer, sizeof(buffer), stdin);
+        buffer[strcspn(buffer, "\n")] = '\0';
+
+        if (isValidEventDate(buffer)) {
+            strcpy(newEvent.date, buffer);
+            break;
+        }
+
+        printf("Please use DD.MM.YYYY format, for example 16.10.2025.\n");
+    }
+
+    while (1) {
+        printf("Enter event time (HH:MM): ");
+        fgets(buffer, sizeof(buffer), stdin);
+        buffer[strcspn(buffer, "\n")] = '\0';
+
+        if (isValidEventTime(buffer)) {
+            strcpy(newEvent.time, buffer);
+            break;
+        }
+
+        printf("Incorrect format, please use HH:MM, eg 16:30.\n");
+    }
+
+    while (1) {
+        printf("Enter location: ");
+        fgets(buffer, sizeof(buffer), stdin);
+        buffer[strcspn(buffer, "\n")] = '\0';
+
+        if (isValidEventLocation(buffer)) {
+            strcpy(newEvent.location, buffer);
+            break;
+        }
+
+        printf("Please only use Latin letters, numbers, spaces, commas, and dashes. Max 50 characters.\n");
+    }
+
+    while (1) {
+        printf("Enter max seat row (A-Z): ");
+        fgets(buffer, sizeof(buffer), stdin);
+        buffer[strcspn(buffer, "\n")] = '\0';
+        if (strlen(buffer) == 1 && buffer[0] >= 'A' && buffer[0] <= 'Z') {
+            newEvent.maxSeatRow = buffer[0];
+            break;
+        }
+
+        printf("Please use an uppercase letter A-Z, for example V.\n");
+    }
+
+    while (1) {
+        printf("Enter max seat number (1-20): ");
+        fgets(buffer, sizeof(buffer), stdin);
+        if (sscanf(buffer, "%d", &newEvent.maxSeatNumber) == 1 &&
+            isValidEventMaxSeatNumber(newEvent.maxSeatNumber)) {
+            break;
+        }
+
+        printf("Please use a number from 1-20.\n");
+    }
+
+    while (1) {
+        printf("Enter price (0.00-100): ");
+        fgets(buffer, sizeof(buffer), stdin);
+        if (sscanf(buffer, "%lf", &newEvent.price) == 1 &&
+            isValidEventPrice(newEvent.price)) {
+            break;
+        }
+
+        printf("Price must be between 0.00 and 100.00.\n");
+    }
+
+    newEvent.id = nextEventID;
+    nextEventID++;
+
+    resizeEventListIfNeeded(events);
+
+    // now, confirmed we have space in the events list
+    // therefore, add event / insert event
+    events->data[events->count] = newEvent;
+    events->count++;
+
+    saveAllEvents(events->data, events->count);
+
+    printf("Event saved successfully!\n");
+    printEvent(&newEvent);
 }

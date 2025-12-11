@@ -6,8 +6,16 @@
 #define FILE_H
 #include "models.h"
 
-int loadAll(Event repo[]);
+int getEventCount();
 
-int saveAll(Event repo[], int count);
+int loadAllEvents(Event repo[]);
+
+int saveAllEvents(Event repo[], int count);
+
+int deleteAllEvents();
+
+void resizeEventListIfNeeded(EventList *events);
+
+void freeAllDynamicMemory(EventList *events, UserList *users);
 
 #endif // FILE_H

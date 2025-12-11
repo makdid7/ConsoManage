@@ -142,3 +142,21 @@ int isValidEventID(const int id, const EventList *events) {
     }
     return 0;
 }
+
+int isValidFullName(char* fullName) {
+    const int len = strlen(fullName);
+
+    if (len < 1 || len > 75) {
+        return 0;
+    }
+    for (int i = 0; i < len; i++) {
+        const char c = fullName[i];
+        if (!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == ' ' ||
+              c == '-' || c == ',')) {
+            return 0;
+        }
+    }
+
+
+    return 1;
+}

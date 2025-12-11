@@ -72,6 +72,7 @@ int isSeatTaken(const UserList *users, const Event *event, char row,
                        int seatNumber);
 
 int isValidEmail(const char *email);
+int isValidFullName(char *fullName);
 
 
 #endif //MODELS_H

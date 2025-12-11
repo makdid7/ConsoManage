@@ -15,6 +15,8 @@ void printEvent(Event *event);
 
 void printUserTickets(User *user, EventList *events);
 
+void createNewEvent(EventList *events);
+
 void printSeatmap(char* seatmap, char maxSeatRow, int maxSeatNumber);
 
 #endif //IO_H
