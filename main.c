@@ -17,17 +17,6 @@ int nextTicketID;
 
 // Array-Handling Functions
 
-Event *createEventData(const int size) {
-    Event *tmp = malloc(sizeof(Event) * size);
-    if (tmp == NULL) {
-        printf("#createEventList Failed to allocate memory for events->data "
-            ":(\nExiting ConsoManage...");
-        exit(1);
-    }
-
-    return tmp;
-}
-
 
 void participantFlow(EventList *events, UserList *users) {
     char buffer[100];
@@ -71,19 +60,7 @@ void participantFlow(EventList *events, UserList *users) {
         printf("Invalid email address.\n");
     }
 
-    if (users->count >= users->capacity) {
-        // we're reaching the user limit; let's resize to allow for more.
-        users->capacity *= 2;
-        User *tmp = realloc(users->data, sizeof(User) * users->capacity);
-        if (tmp == NULL) {
-            // realloc failed
-            printf(
-                "Sorry, we failed to reallocate memory to accommodate the new user!");
-            exit(1);
-        }
-        // realloc didn't fail; assign new memory to us
-        users->data = tmp;
-    }
+    resizeUserListIfNeeded(users);
 
     user.ticketsCount = 0;
     user.ticketsCapacity = 0;
@@ -198,18 +175,7 @@ void participantFlow(EventList *events, UserList *users) {
 
                 // Dynamic Allocation for ticketsOwned
                 User *currentUser = &users->data[currentUserIndex];
-                if (currentUser->ticketsCount >= currentUser->ticketsCapacity) {
-                    const int newCap = (currentUser->ticketsCapacity == 0)
-                                           ? 2
-                                           : currentUser->ticketsCapacity * 2;
-                    Ticket *tmp = realloc(currentUser->ticketsOwned, newCap * sizeof(Ticket));
-                    if (!tmp) {
-                        printf("Failed to allocate memory for tickets!\n");
-                        exit(1);
-                    }
-                    currentUser->ticketsOwned = tmp;
-                    currentUser->ticketsCapacity = newCap;
-                }
+                resizeTicketsOwnedListIfNeeded(&user);
 
                 currentUser->ticketsOwned[currentUser->ticketsCount] = ticket;
                 currentUser->ticketsCount++;
@@ -234,25 +200,6 @@ void participantFlow(EventList *events, UserList *users) {
 }
 
 
-void initUserList(UserList *users) {
-    // gives default values to all allocated (but not yet used) users
-
-    users->count = 0;
-    users->capacity = userListInitialCapacity;
-
-    for (int i = 0; i < users->capacity; i++) {
-        User *u = users->data + i; // pointer to the i-th User
-
-        u->fullName[0] = '\0';
-        u->age = 0;
-        u->email[0] = '\0';
-        u->ticketsCount = 0;
-        u->ticketsCapacity = 0;
-        u->ticketsOwned = NULL;
-    }
-}
-
-
 void organizerFlow(EventList *events, UserList *users) {
     char buffer[100];
     while (1) {
@@ -270,38 +217,9 @@ void organizerFlow(EventList *events, UserList *users) {
             printf("Invalid input.\n\n");
         } else {
             if (organizerChoice == 'X') {
-                free(events->data);
-                events->data = NULL;
-                events->count = 0;
-                events->capacity = 1;
-                Event *tmp = malloc(events->capacity * sizeof(Event));
-                if (tmp != NULL) {
-                    events->data = tmp;
-                    initEventData(events, 0); // Re-init data
-                    deleteAllEvents();  // delete from data file as well
-                    printf("All events have been deleted.\n");
-                } else {
-                    printf("Failed to malloc! Quitting ConsoManage...");
-                    exit(1);
-                }
+                deleteAllEvents(events);
             } else if (organizerChoice == 'Y') {
-                // Free ticketsOwned for each user (R4: might move to another choice)
-                for (int i = 0; i < users->count; i++) {
-                    free(users->data[i].ticketsOwned);
-                }
-                free(users->data);
-                users->data = NULL;
-                users->count = 0;
-                users->capacity = 1;
-                User *tmp = malloc(users->capacity * sizeof(User));
-                if (tmp != NULL) {
-                    users->data = tmp;
-                    initUserList(users); // Re-init data
-                    printf("All users have been deleted.\n");
-                } else {
-                    printf("Failed to malloc! Quitting ConsoManage...");
-                    exit(1);
-                }
+                deleteAllUsers(users);
             } else if (organizerChoice == '1') {
                 createNewEvent(events);
             } else if (organizerChoice == '2') {
@@ -317,41 +235,6 @@ void organizerFlow(EventList *events, UserList *users) {
             }
         }
     }
-}
-
-
-EventList *createEventContainer() {
-    EventList *tmp = malloc(sizeof(EventList));
-    if (tmp == NULL) {
-        printf("#createEventList Failed to allocate memory for events ER-Light "
-            "container :(\nExiting ConsoManage...");
-        exit(1);
-    }
-
-    return tmp;
-}
-
-
-User *createUserData(const int size) {
-    User *tmp = malloc(sizeof(User) * size);
-    if (tmp == NULL) {
-        printf("#createEventList Failed to allocate memory for users->data "
-            ":(\nExiting ConsoManage...");
-        exit(1);
-    }
-
-    return tmp;
-}
-
-UserList *createUserContainer() {
-    UserList *tmp = malloc(sizeof(UserList));
-    if (tmp == NULL) {
-        printf("#createUserList Failed to allocate memory for users ER-Light "
-            "container :(\nExiting ConsoManage...");
-        exit(1);
-    }
-
-    return tmp;
 }
 
 
@@ -393,7 +276,7 @@ int main() {
     // Allocate memory for the user list
     UserList *users = createUserContainer();
     users->data = createUserData(userListInitialCapacity);
-    initUserList(users);
+    initUserList(users, 0);
 
     // Enter main/base UI cycle
     while (1) {
@@ -405,12 +288,14 @@ int main() {
             printf("Invalid input.\n");
             continue;
         }
-        if (userType == 1) {  // enum: 1 == Participant
+        if (userType == 1) {
+            // enum: 1 == Participant
             participantFlow(events, users);
-        } else if (userType == 2) {  // enum: 2 == Organizer
+        } else if (userType == 2) {
+            // enum: 2 == Organizer
             organizerFlow(events, users);
         } else if (userType == -1) {
-            break;  // Gracefully exit the main/base UI cycle
+            break; // Gracefully exit the main/base UI cycle
         } else {
             // Invalid input, re-starting main/base UI cycle
             printf("Please choose [1] or [2].\n");

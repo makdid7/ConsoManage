@@ -129,3 +129,24 @@ void initEventData(EventList *events, const int initialEventCount) {
         e->price = 0.0;
     }
 }
+
+
+void initUserList(UserList *users, const int userCount) {
+
+    // gives default values to all allocated (but not yet used) users
+
+    users->count = userCount;
+    users->capacity = nearestPowerOfTwo(users->count);
+
+    for (int i = 0; i < users->capacity; i++) {
+        User *u = users->data + i; // pointer to the i-th User
+
+        u->fullName[0] = '\0';
+        u->age = 0;
+        u->email[0] = '\0';
+        u->ticketsCount = 0;
+        u->ticketsCapacity = 0;
+        u->ticketsOwned = NULL;
+    }
+}
+

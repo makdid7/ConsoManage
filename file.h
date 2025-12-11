@@ -12,10 +12,26 @@ int loadAllEvents(Event repo[]);
 
 int saveAllEvents(Event repo[], int count);
 
-int deleteAllEvents();
+int clearEventsFile();
 
 void resizeEventListIfNeeded(EventList *events);
 
+void resizeUserListIfNeeded(UserList *users);
+
+void resizeTicketsOwnedListIfNeeded(User *currentUser);
+
 void freeAllDynamicMemory(EventList *events, UserList *users);
+
+EventList *createEventContainer();
+
+Event *createEventData(int size);
+
+User *createUserData(int size);
+
+UserList *createUserContainer();
+
+void deleteAllEvents(EventList *events);
+
+void deleteAllUsers(UserList *users);
 
 #endif // FILE_H

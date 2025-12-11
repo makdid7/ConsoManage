@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "logic.h"
 #include "models.h"
 
 
@@ -128,6 +129,34 @@ void resizeEventListIfNeeded(EventList *events) {
         }
     }
 }
+void resizeUserListIfNeeded(UserList *users) {
+    if (users->count >= users->capacity) {
+        // we're reaching the user limit; let's resize to allow for more.
+        users->capacity *= 2;
+        User *tmp = realloc(users->data, sizeof(User) * users->capacity);
+        if (tmp == NULL) {
+            // realloc failed
+            printf("Sorry, we failed to reallocate memory to accommodate the new user! Exiting ConsoManage...");
+            exit(1);
+        }
+        // realloc didn't fail; assign new memory to us
+        users->data = tmp;
+    }
+}
+void resizeTicketsOwnedListIfNeeded(User* currentUser) {
+    if (currentUser->ticketsCount >= currentUser->ticketsCapacity) {
+        const int newCap = (currentUser->ticketsCapacity == 0)
+                               ? 2
+                               : currentUser->ticketsCapacity * 2;
+        Ticket *tmp = realloc(currentUser->ticketsOwned, newCap * sizeof(Ticket));
+        if (!tmp) {
+            printf("Failed to allocate memory for tickets!\n");
+            exit(1);
+        }
+        currentUser->ticketsOwned = tmp;
+        currentUser->ticketsCapacity = newCap;
+    }
+}
 
 void freeAllDynamicMemory(EventList *events, UserList *users) {
     free(events->data);
@@ -141,8 +170,7 @@ void freeAllDynamicMemory(EventList *events, UserList *users) {
     users = NULL;
 }
 
-int deleteAllEvents() {
-
+int clearEventsFile() {
     // Opening in "w" mode automatically truncates (clears) the file to zero length.
     FILE *f = fopen("data.txt", "w");
 
@@ -155,4 +183,86 @@ int deleteAllEvents() {
     // File cleared, close immediately
     fclose(f);
     return 1; // Notify function-caller of success
+}
+
+EventList *createEventContainer() {
+    EventList *tmp = malloc(sizeof(EventList));
+    if (tmp == NULL) {
+        printf("#createEventList Failed to allocate memory for events ER-Light "
+            "container :(\nExiting ConsoManage...");
+        exit(1);
+    }
+
+    return tmp;
+}
+
+Event *createEventData(const int size) {
+    Event *tmp = malloc(sizeof(Event) * size);
+    if (tmp == NULL) {
+        printf("#createEventList Failed to allocate memory for events->data "
+            ":(\nExiting ConsoManage...");
+        exit(1);
+    }
+
+    return tmp;
+}
+
+
+User *createUserData(const int size) {
+    User *tmp = malloc(sizeof(User) * size);
+    if (tmp == NULL) {
+        printf("#createEventList Failed to allocate memory for users->data "
+            ":(\nExiting ConsoManage...");
+        exit(1);
+    }
+
+    return tmp;
+}
+
+UserList *createUserContainer() {
+    UserList *tmp = malloc(sizeof(UserList));
+    if (tmp == NULL) {
+        printf("#createUserList Failed to allocate memory for users ER-Light "
+            "container :(\nExiting ConsoManage...");
+        exit(1);
+    }
+
+    return tmp;
+}
+
+void deleteAllEvents(EventList *events) {
+    free(events->data);
+    events->data = NULL;
+    events->count = 0;
+    events->capacity = 1;
+    Event *tmp = malloc(events->capacity * sizeof(Event));
+    if (tmp != NULL) {
+        events->data = tmp;
+        initEventData(events, 0); // Re-init data
+        clearEventsFile(); // delete from data file as well
+        printf("All events have been deleted.\n");
+    } else {
+        printf("Failed to malloc! Quitting ConsoManage...");
+        exit(1);
+    }
+}
+
+void deleteAllUsers(UserList *users) {
+    // Free ticketsOwned for each user
+    for (int i = 0; i < users->count; i++) {
+        free(users->data[i].ticketsOwned);
+    }
+    free(users->data);
+    users->data = NULL;
+    users->count = 0;
+    users->capacity = 1;
+    User *tmp = malloc(users->capacity * sizeof(User));
+    if (tmp != NULL) {
+        users->data = tmp;
+        initUserList(users, 0); // Re-init data
+        printf("All users have been deleted.\n");
+    } else {
+        printf("Failed to malloc! Quitting ConsoManage...");
+        exit(1);
+    }
 }

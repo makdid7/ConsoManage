@@ -11,6 +11,8 @@ int nearestPowerOfTwo(int x);
 
 void initEventData(EventList *events, int initialEventCount);
 
+void initUserList(UserList *users, int userCount);
+
 void setNextEventID(int newID);
 
 int getMaxEventID(const EventList *events);
