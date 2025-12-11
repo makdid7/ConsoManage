@@ -3,7 +3,7 @@
 #include <ctype.h>
 #include <string.h>
 
-inline int isValidEventName(char name[51]) {
+int isValidEventName(char name[51]) {
     const int len = strlen(name);
     if (len == 0 || len > 50) {
         return 0;
@@ -21,7 +21,7 @@ inline int isValidEventName(char name[51]) {
     return 1;
 }
 
-inline int isValidEventLocation(char loc[51]) {
+int isValidEventLocation(char loc[51]) {
     const int len = strlen(loc);
     if (len == 0 || len > 50) {
         return 0;
@@ -38,7 +38,7 @@ inline int isValidEventLocation(char loc[51]) {
     return 1;
 }
 
-inline int isValidEventDate(char date[11]) {
+int isValidEventDate(char date[11]) {
     if (strlen(date) != 10) {
         return 0;
     }
@@ -81,7 +81,7 @@ inline int isValidEventDate(char date[11]) {
     return 1;
 }
 
-inline int isValidEventTime(char time[6]) {
+int isValidEventTime(char time[6]) {
     if (strlen(time) != 5) {
         return 0;
     }
@@ -105,28 +105,28 @@ inline int isValidEventTime(char time[6]) {
     return 1;
 }
 
-inline int isValidEventMaxSeatNumber(const int num) {
+int isValidEventMaxSeatNumber(const int num) {
     if (num >= 1 && num <= 20) {
         return 1;
     }
     return 0;
 }
 
-inline int isValidEventPrice(const double price) {
+int isValidEventPrice(const double price) {
     if (price >= 0 && price <= 100.0) {
         return 1;
     }
     return 0;
 }
 
-inline int isValidRow(const Event *event, const char row) {
+int isValidRow(const Event *event, const char row) {
     if (row >= 'A' && row <= event->maxSeatRow) {
         return 1;
     }
     return 0;
 }
 
-inline int isValidEventID(const int id, const EventList *events) {
+int isValidEventID(const int id, const EventList *events) {
     if (id == -1) {
         return 1;
     }

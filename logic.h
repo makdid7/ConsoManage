@@ -1,10 +1,10 @@
-#ifndef CONSOMANAGE_LOGIC_H
-#define CONSOMANAGE_LOGIC_H
+#ifndef LOGIC_H
+#define LOGIC_H
 
 #include "models.h"
 
-inline double getCostWithDiscount(double originalCost, const User *user);
+double getCostWithDiscount(double originalCost, const User *user);
 
-inline char *generateSeatmap(User *users, Event *event);
+char* generateSeatmap(const UserList* users, const Event* event);
 
-#endif //CONSOMANAGE_LOGIC_H
+#endif //LOGIC_H

@@ -298,8 +298,11 @@ void participantFlow(const EventList *events, UserList *users) {
                     continue;
                 }
 
-                char* seatmap[event.maxSeatRow][event.maxSeatNumber] = generateSeatmap(&users, &event);
-                printSeatMap(users, &event);
+                // Generate and show this even'ts seatmap
+                char *seatmap = generateSeatmap(users, &event);
+                printSeatmap(seatmap, event.maxSeatRow, event.maxSeatNumber);
+                free(seatmap);
+                seatmap = NULL;
 
                 char row;
                 int seatNumber;
@@ -342,8 +345,8 @@ void participantFlow(const EventList *events, UserList *users) {
                 User *currentUser = &users->data[currentUserIndex];
                 if (currentUser->ticketsCount >= currentUser->ticketsCapacity) {
                     const int newCap = (currentUser->ticketsCapacity == 0)
-                                     ? 2
-                                     : currentUser->ticketsCapacity * 2;
+                                           ? 2
+                                           : currentUser->ticketsCapacity * 2;
                     Ticket *tmp = realloc(currentUser->ticketsOwned, newCap * sizeof(Ticket));
                     if (!tmp) {
                         printf("Failed to allocate memory for tickets!\n");
@@ -361,7 +364,7 @@ void participantFlow(const EventList *events, UserList *users) {
                 break;
             }
             case 3: {
-                listUserTickets(&users->data[currentUserIndex], events);
+                printUserTickets(&users->data[currentUserIndex], events);
                 break;
             }
             case 4: {

@@ -2,7 +2,12 @@
 // Created by mkd on 11/28/25.
 //
 
-#ifndef CONSOMANAGE_FILEIO_H
-#define CONSOMANAGE_FILEIO_H
+#ifndef FILE_H
+#define FILE_H
+#include "models.h"
 
-#endif //CONSOMANAGE_FILEIO_H
+int loadAll(Event repo[]);
+
+int saveAll(Event repo[], int count);
+
+#endif // FILE_H

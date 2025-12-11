@@ -5,12 +5,11 @@
 #include "file.h"
 
 #include <stdio.h>
-#include <string.h>
 
 #include "models.h"
 
 int loadAll(Event repo[]) {
-    FILE* f = fopen("data.txt", "r");
+    FILE *f = fopen("data.txt", "r");
     if (f == NULL) return 0;
 
     int count = 0;
@@ -41,7 +40,7 @@ int loadAll(Event repo[]) {
 }
 
 int saveAll(Event repo[], const int count) {
-    FILE* f = fopen("data.txt", "w");
+    FILE *f = fopen("data.txt", "w");
     if (f == NULL) return 1;
 
     for (int i = 0; i < count; i++) {

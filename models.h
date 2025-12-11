@@ -2,8 +2,8 @@
 // Created by mkd on 11/28/25.
 //
 
-#ifndef CONSOMANAGE_MODELS_H
-#define CONSOMANAGE_MODELS_H
+#ifndef MODELS_H
+#define MODELS_H
 
 typedef struct {
     char ownerFullName[75];
@@ -52,26 +52,26 @@ typedef enum {
     ORGANIZER = 2
 } UserType;
 
-inline int isValidEventName(char name[51]);
+int isValidEventName(char name[51]);
 
-inline int isValidEventLocation(char loc[51]);
+int isValidEventLocation(char loc[51]);
 
-inline int isValidEventDate(char date[11]);
+int isValidEventDate(char date[11]);
 
-inline int isValidEventTime(char time[6]);
+int isValidEventTime(char time[6]);
 
-inline int isValidEventMaxSeatNumber(int num);
+int isValidEventMaxSeatNumber(int num);
 
-inline int isValidEventPrice(double price);
+int isValidEventPrice(double price);
 
-inline int isValidRow(const Event *event, char row);
+int isValidRow(const Event *event, char row);
 
-inline int isValidEventID(int id, const EventList *events);
+int isValidEventID(int id, const EventList *events);
 
-inline int isSeatTaken(const UserList *users, const Event *event, char row,
+int isSeatTaken(const UserList *users, const Event *event, char row,
                        int seatNumber);
 
-inline int isValidEmail(const char *email);
+int isValidEmail(const char *email);
 
 
-#endif //CONSOMANAGE_MODELS_H
+#endif //MODELS_H

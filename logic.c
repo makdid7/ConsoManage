@@ -1,12 +1,11 @@
 #include "logic.h"
 
 #include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-
-
-
-inline double getCostWithDiscount(const double originalCost, const User *user) {
+double getCostWithDiscount(const double originalCost, const User *user) {
     if (user->age <= 12) {
         return originalCost * (1.0 - 0.4);
     }
@@ -22,7 +21,7 @@ inline double getCostWithDiscount(const double originalCost, const User *user) {
 
 
 
-inline int isSeatTaken(const UserList *users, const Event *event, const char row,
+int isSeatTaken(const UserList *users, const Event *event, const char row,
                        const int seatNumber) {
     for (int i = 0; i < users->count; i++) {
         for (int j = 0; j < users->data[i].ticketsCount; j++) {
@@ -36,7 +35,7 @@ inline int isSeatTaken(const UserList *users, const Event *event, const char row
     return 0;
 }
 
-inline int isValidEmail(const char *email) {
+int isValidEmail(const char *email) {
     const size_t len = strlen(email);
     if (len == 0 || len > 50)
         return 0;
@@ -51,20 +50,31 @@ inline int isValidEmail(const char *email) {
     return 1;
 }
 
-inline char* generateSeatmap(User* users, Event* event) {
-    char* seatmap;
-    // for (char row = 'A'; row <= event->maxSeatRow; row++) {
-    //     printf("%c: ", row);
-    //     for (int seat = 1; seat <= event.maxSeatNumber; seat++) {
-    //         if (isSeatTaken(users, &event, row, seat)) {
-    //             printf("--");
-    //         } else {
-    //             printf("%02d", seat);
-    //         }
-    //         printf(" ");
-    //     }
-    //     printf("\n");
-    // }
+
+char* generateSeatmap(const UserList* users, const Event* event) {
+    const int rows = event->maxSeatRow - 'A' + 1;
+    const int seats = event->maxSeatNumber;
+
+    const int cellSize = 3; // so accommodates for like "05\0" or "--\0"
+    char* seatmap = malloc(rows * seats * cellSize);
+    if (!seatmap) {
+        printf("Couldn't allocate memory for generateSeatmap, exiting ConsoManage...\n");
+        exit(1);
+    }
+
+    for (char row = 'A'; row <= event->maxSeatRow; row++) {
+        for (int seat = 1; seat <= seats; seat++) {
+
+            const int rowIndex = row - 'A';
+            const int index = (rowIndex * seats + (seat - 1)) * cellSize;
+
+            if (isSeatTaken(users, event, row, seat)) {
+                snprintf(&seatmap[index], cellSize, "--");
+            } else {
+                snprintf(&seatmap[index], cellSize, "%02d", seat);
+            }
+        }
+    }
 
     return seatmap;
 }
