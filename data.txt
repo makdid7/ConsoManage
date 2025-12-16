@@ -1,0 +1,23 @@
+1;Concert Night;12.12.2025;19:30;Main Hall;F;15;25.00
+2;Tech Expo;05.03.2026;09:00;Expo Center;J;20;0.00
+3;Kids Show;01.06.2025;11:00;City Theater;D;10;8.50
+
+BAD LINE WITHOUT DELIMITERS
+
+4;Late Event;31.11.2025;22:00;Club X;C;5;12.00
+5;Invalid Date;32.01.2025;18:00;Somewhere;B;8;10.00
+6;Invalid Time;10.10.2025;25:99;Nowhere;A;5;5.00
+
+7;Too Expensive;15.08.2025;20:00;Luxury Hall;E;12;999.99
+8;Negative Price;15.08.2025;20:00;Cheap Hall;E;12;-5.00
+
+9;Bad Seats;20.09.2025;14:00;Arena;Z;99;15.00
+10;Lowercase Row;21.09.2025;14:00;Arena;a;10;15.00
+
+2;Duplicate ID;07.02.2026;23:00;Club;Z;20;6.99
+2;Duplicate ID Again;07.02.2026;23:00;Club;Z;20;6.99
+
+11;MissingPrice;01.01.2026;00:00;Void;A;1
+12;Extra;Fields;01.01.2026;00:00;Place;A;1;5.00;EXTRA
+
+13;EdgeCase;01.01.2075;23:59;EndOfRange;A;1;0.00
