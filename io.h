@@ -3,20 +3,23 @@
 
 #include "models.h"
 
-// format validation
-// print data to console
-// read raw user input
-// report success/failure of input format
-// uses Models only, no Logic, no FileIO
-
+/* UI helpers */
 void printUser(User *user);
 
 void printEvent(Event *event);
 
 void printUserTickets(User *user, EventList *events);
 
+void printSeatmap(char *seatmap, char maxSeatRow, int maxSeatNumber);
+
+/* UI flows */
+void participantFlow(EventList *events, UserList *users);
+
+void organizerFlow(EventList *events, UserList *users);
+
 void createNewEvent(EventList *events);
 
-void printSeatmap(char* seatmap, char maxSeatRow, int maxSeatNumber);
+/* shared UI state */
+void setNextEventID(int newID);
 
-#endif //IO_H
+#endif // IO_H

@@ -60,7 +60,7 @@ int isValidEventDate(char date[11]) {
     const int day = (date[0] - '0') * 10 + (date[1] - '0');
     const int month = (date[3] - '0') * 10 + (date[4] - '0');
     const int year = (date[6] - '0') * 1000 + (date[7] - '0') * 100 +
-               (date[8] - '0') * 10 + (date[9] - '0');
+                     (date[8] - '0') * 10 + (date[9] - '0');
 
     if (day < 1 || day > 31 || month < 1 || month > 12 || year < 2025 ||
         year > 2075) {
@@ -143,7 +143,7 @@ int isValidEventID(const int id, const EventList *events) {
     return 0;
 }
 
-int isValidFullName(char* fullName) {
+int isValidFullName(char *fullName) {
     const int len = strlen(fullName);
 
     if (len < 1 || len > 75) {
@@ -158,5 +158,20 @@ int isValidFullName(char* fullName) {
     }
 
 
+    return 1;
+}
+
+int isValidEmail(const char *email) {
+    const size_t len = strlen(email);
+    if (len == 0 || len > 50)
+        return 0;
+    const char *at = strchr(email, '@');
+    if (!at)
+        return 0;
+    // simple check: at least one char before and after '@'
+    if (at == email)
+        return 0;
+    if (*(at + 1) == '\0')
+        return 0;
     return 1;
 }

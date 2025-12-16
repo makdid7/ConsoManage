@@ -3,18 +3,21 @@
 
 #include "models.h"
 
-double getCostWithDiscount(double originalCost, const User *user);
+/* business logic */
+double getCostWithDiscount(const double originalCost, const User *user);
 
-char* generateSeatmap(const UserList* users, const Event* event);
+int isSeatTaken(const UserList *users, const Event *event, char row, int seatNumber);
 
-int nearestPowerOfTwo(int x);
+char *generateSeatmap(const UserList *users, const Event *event);
 
-void initEventData(EventList *events, int initialEventCount);
-
-void initUserList(UserList *users, int userCount);
-
-void setNextEventID(int newID);
-
+/* utilities */
 int getMaxEventID(const EventList *events);
 
-#endif //LOGIC_H
+int nearestPowerOfTwo(const int x);
+
+/* initialization */
+void initEventData(EventList *events, const int initialEventCount);
+
+void initUserList(UserList *users, const int userCount);
+
+#endif // LOGIC_H

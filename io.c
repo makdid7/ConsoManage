@@ -1,20 +1,21 @@
-//
-// Created by mkd on 11/28/25.
-//
-
 #include "io.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "file.h"
+#include "logic.h"
+#include "models.h"
 
 int nextEventID;
+int nextTicketID = 0;
 
 void setNextEventID(int newID) {
     nextEventID = newID;
 }
 
+/* printing helpers unchanged */
 void printUser(User *user) {
     printf("\n------------- User Details -------------\n");
     printf("Full name: %s\n", user->fullName);
@@ -24,7 +25,6 @@ void printUser(User *user) {
 }
 
 void printEvent(Event *event) {
-
     printf("\n------------- Event Details -------------\n");
     printf("ID:       %04d\n", event->id);
     printf("Name:     %s\n", event->name);
@@ -71,7 +71,7 @@ void printUserTickets(User *user, EventList *events) {
 }
 
 
-void printSeatmap(char* seatmap, char maxSeatRow, int maxSeatNumber) {
+void printSeatmap(char *seatmap, char maxSeatRow, int maxSeatNumber) {
     printf("------------- Seatmap -------------\n");
 
     const int seats = maxSeatNumber;
@@ -82,7 +82,6 @@ void printSeatmap(char* seatmap, char maxSeatRow, int maxSeatNumber) {
         const int rowIndex = row - 'A';
 
         for (int seat = 1; seat <= seats; seat++) {
-
             const int cellSize = 3;
             const int index = (rowIndex * seats + (seat - 1)) * cellSize;
 
@@ -96,8 +95,225 @@ void printSeatmap(char* seatmap, char maxSeatRow, int maxSeatNumber) {
 }
 
 
+void participantFlow(EventList *events, UserList *users) {
+    char buffer[100];
+    User user;
 
-// -----Event Creation -----
+    // -----Enter Participant Info-----
+    while (1) {
+        printf("Enter full name: ");
+        fgets(buffer, sizeof(buffer), stdin);
+        buffer[strcspn(buffer, "\n")] = '\0';
+
+        if (isValidFullName(buffer)) {
+            strcpy(user.fullName, buffer);
+            break;
+        }
+
+        printf("Invalid name, please try another spelling.\n");
+    }
+
+    while (1) {
+        printf("Enter age: ");
+        fgets(buffer, sizeof(buffer), stdin);
+        int age;
+        if (sscanf(buffer, "%d", &age) == 1 && age >= 0 && age <= 110) {
+            user.age = age;
+            break;
+        }
+        printf("Age must be 0-110 years.\n");
+    }
+
+    while (1) {
+        printf("Enter email: ");
+        fgets(buffer, sizeof(buffer), stdin);
+        buffer[strcspn(buffer, "\n")] = '\0';
+
+        if (isValidEmail(buffer)) {
+            strcpy(user.email, buffer);
+            break;
+        }
+
+        printf("Invalid email address.\n");
+    }
+
+    resizeUserListIfNeeded(users);
+
+    user.ticketsCount = 0;
+    user.ticketsCapacity = 0;
+    user.ticketsOwned = NULL;
+    const int currentUserIndex = users->count;
+
+    User *newUserPointer = users->data + users->count;
+    // works cuz `users->data` refers to address of first element of `users`
+    *newUserPointer = user; // assign our new user to the memory at address [first user]+[total # of users]
+    users->count++;
+
+    printf("User created successfully!\n");
+    printUser(&user);
+
+    // -----Participant Menu-----
+
+    int choice;
+    while (1) {
+        printf("\nParticipant Menu:\n");
+        printf("[1] See all events\n");
+        printf("[2] Register for an event\n");
+        printf("[3] List my tickets\n");
+        printf("[4] Exit to main menu\n");
+        printf("Choice: ");
+        fgets(buffer, sizeof(buffer), stdin);
+
+        if (sscanf(buffer, "%d", &choice) != 1) {
+            printf("Invalid input. Try again.\n");
+            continue;
+        }
+
+        switch (choice) {
+            case 1: {
+                if (events->count == 0) {
+                    printf("Nothing is happening at the moment.\n");
+                }
+                for (int i = 0; i < events->count; i++) {
+                    printEvent(&(events->data[i]));
+                }
+                break;
+            }
+            case 2: {
+                int eventID;
+                while (1) {
+                    printf("Enter Event ID: ");
+                    fgets(buffer, sizeof(buffer), stdin);
+                    if (sscanf(buffer, "%d", &eventID) == 1 &&
+                        isValidEventID(eventID, events)) {
+                        break;
+                    }
+                    printf("Invalid Event ID. Try again.\n");
+                }
+
+                Event event;
+                int found = 0;
+                for (int i = 0; i < events->count; i++) {
+                    if (events->data[i].id == eventID) {
+                        event = events->data[i];
+                        found = 1;
+                        break;
+                    }
+                }
+
+                if (!found) {
+                    printf("Event not found.\n");
+                    continue;
+                }
+
+                // Generate and show this even'ts seatmap
+
+                char *seatmap = generateSeatmap(users, &event);
+                printSeatmap(seatmap, event.maxSeatRow, event.maxSeatNumber);
+                free(seatmap);
+                seatmap = NULL;
+
+                char row;
+                int seatNumber;
+                while (1) {
+                    printf("Enter row (A-Z): ");
+                    fgets(buffer, sizeof(buffer), stdin);
+                    if (sscanf(buffer, "%c", &row) == 1 && isValidRow(&event, row)) {
+                        break;
+                    }
+                    printf("Please use uppercase letter A-Z. Make sure row %c exists.\n",
+                           buffer[0]);
+                }
+
+                while (1) {
+                    printf("Enter seat number (1-20): ");
+                    fgets(buffer, sizeof(buffer), stdin);
+                    if (sscanf(buffer, "%d", &seatNumber) == 1 && seatNumber >= 1 &&
+                        seatNumber <= event.maxSeatNumber) {
+                        if (isSeatTaken(users, &event, row, seatNumber)) {
+                            printf("Seat already taken. Please choose another.\n");
+                        } else {
+                            break;
+                        }
+                    } else {
+                        printf("Please use a number from 1-20.\n");
+                    }
+                }
+
+                Ticket ticket;
+                strcpy(ticket.ownerFullName, user.fullName);
+                ticket.row = row;
+                ticket.seatNumber = seatNumber;
+                ticket.eventID = event.id;
+                ticket.id = nextTicketID;
+                nextTicketID++;
+                sprintf(ticket.ticketReference, "TK-%04d%c%02d", event.id, row, seatNumber);
+                ticket.pricePaid = getCostWithDiscount(event.price, &user);
+
+                // Dynamic Allocation for ticketsOwned
+                User *currentUser = &users->data[currentUserIndex];
+                resizeTicketsOwnedListIfNeeded(currentUser);
+
+                currentUser->ticketsOwned[currentUser->ticketsCount] = ticket;
+                currentUser->ticketsCount++;
+
+                printf("Ticket booked successfully! Reference: %s, Price: %.2lf\n",
+                       ticket.ticketReference, ticket.pricePaid);
+                break;
+            }
+            case 3: {
+                printUserTickets(&users->data[currentUserIndex], events);
+                break;
+            }
+            case 4: {
+                return;
+            }
+            default: {
+                printf("Invalid choice.\n");
+                break;
+            }
+        }
+    }
+}
+
+
+void organizerFlow(EventList *events, UserList *users) {
+    char buffer[100];
+    while (1) {
+        printf("\nOrganizer Menu:\n");
+        printf("[1] Create a new event.\n");
+        printf("[2] View all existing events.\n");
+        printf("[3] Return to the main menu.\n");
+        printf("[X] Delete all events. This is irreversible.\n");
+        printf("[Y] Delete all users. This is irreversible.\n");
+        printf("Choice: ");
+
+        char organizerChoice;
+        fgets(buffer, sizeof(buffer), stdin);
+        if (sscanf(buffer, "%c", &organizerChoice) != 1) {
+            printf("Invalid input.\n\n");
+        } else {
+            if (organizerChoice == 'X') {
+                deleteAllEvents(events);
+            } else if (organizerChoice == 'Y') {
+                deleteAllUsers(users);
+            } else if (organizerChoice == '1') {
+                createNewEvent(events);
+            } else if (organizerChoice == '2') {
+                if (events->count <= 0) {
+                    printf("There are no existing events.\n");
+                } else {
+                    for (int i = 0; i < events->count; i++) {
+                        printEvent(&events->data[i]);
+                    }
+                }
+            } else if (organizerChoice == '3') {
+                break;
+            }
+        }
+    }
+}
+
 
 void createNewEvent(EventList *events) {
     Event newEvent;

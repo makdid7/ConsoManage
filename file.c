@@ -1,7 +1,3 @@
-//
-// Created by mkd on 11/28/25.
-//
-
 #include "file.h"
 
 #include <stdio.h>
@@ -9,7 +5,6 @@
 
 #include "logic.h"
 #include "models.h"
-
 
 int getEventCount() {
     FILE *f = fopen("data.txt", "r");
@@ -20,6 +15,7 @@ int getEventCount() {
 
     while (fgets(line, sizeof(line), f) != NULL) {
         Event e;
+
         const int parsed = sscanf(
             line,
             "%d;%51[^;];%11[^;];%5[^;];%51[^;];%c;%d;%lf",
@@ -36,6 +32,19 @@ int getEventCount() {
         if (parsed != 8) {
             continue;
         }
+
+        /* ---- semantic validation via logic / models ---- */
+
+        if (e.id < 0 ||
+            !isValidEventName(e.name) ||
+            !isValidEventDate(e.date) ||
+            !isValidEventTime(e.time) ||
+            !isValidEventLocation(e.location) ||
+            e.maxSeatRow < 'A' || e.maxSeatRow > 'Z' ||
+            !isValidEventMaxSeatNumber(e.maxSeatNumber) ||
+            !isValidEventPrice(e.price)) {
+            continue;
+            }
 
         count++;
     }
@@ -45,20 +54,21 @@ int getEventCount() {
 }
 
 
+
 int loadAllEvents(Event repo[]) {
     FILE *f = fopen("data.txt", "r");
-
     if (f == NULL) {
-        printf("No data file! Creating empty list...\n");
         return 0;
     }
 
     int count = 0;
-    int anyCount = 0;
+    int lineNumber = 0;
     char line[300];
 
     while (fgets(line, sizeof(line), f) != NULL) {
         Event e;
+        lineNumber++;
+
         const int parsed = sscanf(
             line,
             "%d;%51[^;];%11[^;];%5[^;];%51[^;];%c;%d;%lf",
@@ -72,21 +82,35 @@ int loadAllEvents(Event repo[]) {
             &e.price
         );
 
-        anyCount++;
-
         if (parsed != 8) {
-            printf("Line %d parsing failed, skipping...\n", anyCount);
+            printf("Line %d parsing failed, skipping...\n", lineNumber);
             continue;
         }
+
+        /* ---- semantic validation via logic / models ---- */
+
+        if (e.id < 0 ||
+            !isValidEventName(e.name) ||
+            !isValidEventDate(e.date) ||
+            !isValidEventTime(e.time) ||
+            !isValidEventLocation(e.location) ||
+            e.maxSeatRow < 'A' || e.maxSeatRow > 'Z' ||
+            !isValidEventMaxSeatNumber(e.maxSeatNumber) ||
+            !isValidEventPrice(e.price)) {
+
+            printf("Line %d failed validation, skipping...\n", lineNumber);
+            continue;
+            }
 
         repo[count++] = e;
     }
 
-    printf("Parsed %d data entries.\n", count);
+    printf("Parsed %d valid data entries.\n", count);
 
     fclose(f);
     return count;
 }
+
 
 
 int saveAllEvents(Event repo[], const int count) {
@@ -129,6 +153,7 @@ void resizeEventListIfNeeded(EventList *events) {
         }
     }
 }
+
 void resizeUserListIfNeeded(UserList *users) {
     if (users->count >= users->capacity) {
         // we're reaching the user limit; let's resize to allow for more.
@@ -143,7 +168,8 @@ void resizeUserListIfNeeded(UserList *users) {
         users->data = tmp;
     }
 }
-void resizeTicketsOwnedListIfNeeded(User* currentUser) {
+
+void resizeTicketsOwnedListIfNeeded(User *currentUser) {
     if (currentUser->ticketsCount >= currentUser->ticketsCapacity) {
         const int newCap = (currentUser->ticketsCapacity == 0)
                                ? 2
@@ -158,32 +184,6 @@ void resizeTicketsOwnedListIfNeeded(User* currentUser) {
     }
 }
 
-void freeAllDynamicMemory(EventList *events, UserList *users) {
-    free(events->data);
-    events->data = NULL;
-    free(events);
-    events = NULL;
-
-    free(users->data);
-    users->data = NULL;
-    free(users);
-    users = NULL;
-}
-
-int clearEventsFile() {
-    // Opening in "w" mode automatically truncates (clears) the file to zero length.
-    FILE *f = fopen("data.txt", "w");
-
-    if (f == NULL) {
-        // Failed to open the file, maybe permission or path issue
-        printf("Failed to open data file for clearing :(\n");
-        return 0; // Failure
-    }
-
-    // File cleared, close immediately
-    fclose(f);
-    return 1; // Notify function-caller of success
-}
 
 EventList *createEventContainer() {
     EventList *tmp = malloc(sizeof(EventList));
@@ -207,6 +207,16 @@ Event *createEventData(const int size) {
     return tmp;
 }
 
+UserList *createUserContainer() {
+    UserList *tmp = malloc(sizeof(UserList));
+    if (tmp == NULL) {
+        printf("#createUserList Failed to allocate memory for users ER-Light "
+            "container :(\nExiting ConsoManage...");
+        exit(1);
+    }
+
+    return tmp;
+}
 
 User *createUserData(const int size) {
     User *tmp = malloc(sizeof(User) * size);
@@ -219,16 +229,6 @@ User *createUserData(const int size) {
     return tmp;
 }
 
-UserList *createUserContainer() {
-    UserList *tmp = malloc(sizeof(UserList));
-    if (tmp == NULL) {
-        printf("#createUserList Failed to allocate memory for users ER-Light "
-            "container :(\nExiting ConsoManage...");
-        exit(1);
-    }
-
-    return tmp;
-}
 
 void deleteAllEvents(EventList *events) {
     free(events->data);
@@ -265,4 +265,32 @@ void deleteAllUsers(UserList *users) {
         printf("Failed to malloc! Quitting ConsoManage...");
         exit(1);
     }
+}
+
+
+void freeAllDynamicMemory(EventList *events, UserList *users) {
+    free(events->data);
+    events->data = NULL;
+    free(events);
+    events = NULL;
+
+    free(users->data);
+    users->data = NULL;
+    free(users);
+    users = NULL;
+}
+
+int clearEventsFile() {
+    // Opening in "w" mode automatically truncates (clears) the file to zero length.
+    FILE *f = fopen("data.txt", "w");
+
+    if (f == NULL) {
+        // Failed to open the file, maybe permission or path issue
+        printf("Failed to open data file for clearing :(\n");
+        return 0; // Failure
+    }
+
+    // File cleared, close immediately
+    fclose(f);
+    return 1; // Notify function-caller of success
 }
